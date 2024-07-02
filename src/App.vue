@@ -1,7 +1,7 @@
 <template>
 	<main class='h-screen'>
 		<h1 class='pt-11 absolute flex items-center justify-center gap-x-2 w-full text-center'>
-			<img src="https://nacholabraweb.000webhostapp.com/ico.png">
+			<img src="/ico.png">
 			CreateIcons
 		</h1>
 
