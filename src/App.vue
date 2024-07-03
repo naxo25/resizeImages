@@ -20,8 +20,8 @@
 				<p class="mt-2 text-xs tracking-wide text-gray-500">Upload or paste your image</p>
 
 				<div class="text-center">
-					<p class="mt-8 font-medium tracking-wide text-gray-700">New Size of image/icon</p>
-					<input v-model='size' class="mt-2 border text-center font-medium text-gray-700" placeholder="default 32"/>
+					<p class="mt-8 font-medium tracking-wide text-lg text-gray-700">New Size of image/icon</p>
+					<input v-model='size' class="mt-2 border py-0.5 px-3 rounded text-center font-medium text-gray-700" :placeholder="'default' + sizeDefault"/>
 				</div>
 			</div>
 
@@ -35,10 +35,16 @@
 			</div>
 
 			<div class="text-center cursor-pointer">
-				<img class="mx-auto rounded" onclick='document.getElementById("a").click()' :src="image2" />
-				<a :href='image2' download id='a' class='mt-2 block text-sky-500'>Descargar imagen</a>
-				<p @click='copyData' class='mt-2 block text-sky-500'>Copiar data:image</p>
-				<p @click='image1 = false' class='mt-2'>Empezar de nuevo</p>
+				<div v-if='loader'>
+					loading ...
+				</div>
+				<img v-else class="mx-auto rounded" onclick='document.getElementById("a").click()' :src="image2" />
+				<div class="flex justify-center">
+					<a :href='image2' download id='a' class='mt-2 text-sm font-medium block text-sky-500'>Descargar imagen</a>
+					<a :href='image2' target="_blank" class='mt-2 ml-1 block text-sm font-medium text-green-900'>Abrir en otra pestaña</a>
+				</div>
+				<p @click='copyData' class='mt-2 block text-sm font-medium text-sky-500'>Copiar blob url</p>
+				<p @click='image1 = false' class='mt-2 text-sm font-medium'>Empezar de nuevo</p>
 			</div>
 		</div>
 	</main>
@@ -50,15 +56,33 @@
 	import { Toaster, toast } from 'vue-sonner'
 	import ImageTools from '@/redim.js'
 
+	import imageCompression from 'browser-image-compression';
+
+	async function convertToAVIF(file) {
+		const options = {
+			maxSizeMB: 1,
+			maxWidthOrHeight: 1920,
+			useWebWorker: true
+		}
+		try {
+			const compressedFile = await imageCompression(file, options);
+			return compressedFile;
+		} catch (error) {
+			console.log(error);
+		}
+	}
+
 	const image2 = ref()
 	const image1 = ref()
+	const sizeDefault = 300
 	const size = ref()
+	const loader = ref(false)
 
-	document.onpaste = (pasteEvent) => {
+	document.onpaste = async pasteEvent => {
 		const event = pasteEvent.clipboardData.items[0]
 
 		if (event.type.indexOf('text') === 0) {
-			// image1.value = pasteEvent.clipboardData.getData('text')
+			image1.value = pasteEvent.clipboardData.getData('text')
 			return
 		}
 
@@ -69,25 +93,26 @@
 			reader.onload = (event) => image1.value = event.target.result
 			reader.readAsDataURL(blob)
 
-	    resizeTools(blob, size.value || 32)
+			loader.value = true
+	    resizeTools(blob, size.value || sizeDefault)
+			loader.value = false
 		}
 	}
 
-	const changeImg = (event) => {
+	const changeImg = async event => {
 	  const reader = new FileReader()
+	  const binaryImg = event.target.files[0]
 
 	  reader.onload = (event) => image1.value = event.target.result
-	  reader.readAsDataURL(event.target.files[0])
+	  reader.readAsDataURL(binaryImg)
 
-    resizeTools(event.target.files[0], size.value || 32)
+    resizeTools(binaryImg, size.value || sizeDefault)
 	}
 
 	const resizeTools = (event, calidad) => {
-		ImageTools.resize(event, { width: calidad, height: calidad }, (blob, didItResize) => {
-      const reader = new FileReader()
-
-      reader.onload = (event) => image2.value = event.target.result
-      reader.readAsDataURL(blob)
+		ImageTools.resize(event, { width: calidad, height: calidad }, async (blob, didItResize) => {
+      const avifBinary = await convertToAVIF(blob);
+      image2.value = URL.createObjectURL(avifBinary)
 		})
 	}
 

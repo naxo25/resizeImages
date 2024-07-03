@@ -12,6 +12,7 @@
     "lint": "npx standard --fix"
   },
   "dependencies": {
+    "browser-image-compression": "^2.0.2",
     "vue": "^3.2.47",
     "vue-sonner": "^1.1.3"
   },
